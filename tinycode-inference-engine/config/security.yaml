@@ -1,0 +1,10 @@
+# Security configuration.
+#
+# The API key can also be supplied through the TINYCODE_API_KEYS
+# environment variable (comma separated).  The key is never logged.
+
+api_keys:
+  - local-development-key
+require_api_key: true
+rate_limit_per_minute: 0
+request_body_limit_bytes: 1048576

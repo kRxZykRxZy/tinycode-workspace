@@ -1,0 +1,8 @@
+# Evaluation configuration.
+
+evaluation:
+  perplexity_documents: 256
+  code_task_prompts: 32
+  report_dir: reports
+  include_perplexity: true
+  include_code_tasks: true

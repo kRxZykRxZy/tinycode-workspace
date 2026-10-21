@@ -1,0 +1,10 @@
+# Optimisation configuration for the training loop.
+
+optimization:
+  memory_high_watermark: 0.75
+  memory_caution_watermark: 0.90
+  memory_critical_watermark: 0.95
+  target_micro_batch_tokens: 4096
+  min_micro_batch: 1
+  max_micro_batch: 64
+  reduce_loader_workers: true

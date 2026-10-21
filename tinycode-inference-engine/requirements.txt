@@ -1,0 +1,11 @@
+numpy>=1.24
+tokenizers>=0.15
+safetensors>=0.4
+pyyaml>=6.0
+psutil>=5.9
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+httpx>=0.27
+# Optional: the Intel integrated graphics backend (OpenVINO execution provider)
+openvino>=2024.0

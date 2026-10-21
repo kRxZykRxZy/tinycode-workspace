@@ -1,0 +1,3 @@
+add_executable(tinycode_native_tests test_operators.cpp)
+target_link_libraries(tinycode_native_tests PRIVATE tinycode_native)
+add_test(NAME tinycode_native_tests COMMAND tinycode_native_tests)

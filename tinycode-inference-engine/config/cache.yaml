@@ -1,0 +1,11 @@
+# Cache configuration.
+#
+# The cache keys always include the model identity and the tokenizer
+# fingerprint so that state is never reused across incompatible models.
+
+cache:
+  enabled: true
+  prefix_cache_entries: 8
+  prefix_cache_min_tokens: 16
+  token_cache_entries: 64
+  eviction: lru

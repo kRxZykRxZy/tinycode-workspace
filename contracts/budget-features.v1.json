@@ -1,0 +1,32 @@
+{
+  "version": "budget_features.v1",
+  "description": "The feature vector of the adaptive budget controller. The order is part of the contract; new features are appended and the version is bumped.",
+  "features": [
+    "prompt_tokens_normalised",
+    "requested_output_normalised",
+    "task_category_code",
+    "task_category_explain",
+    "task_category_transform",
+    "task_category_debug",
+    "task_category_structured",
+    "complexity_score",
+    "uncertainty_score",
+    "wants_verification",
+    "has_latency_target",
+    "latency_target_normalised",
+    "queue_pressure",
+    "memory_pressure",
+    "backend_speed",
+    "plan_steps_normalised",
+    "computation_budget_normalised"
+  ],
+  "categories": ["code", "explain", "transform", "debug", "structured"],
+  "normalisation": {
+    "prompt_tokens": "min(prompt_tokens, 1024) / 1024",
+    "requested_output": "min(requested_output_tokens, 1024) / 1024",
+    "latency_target": "min(latency_target_ms, 120000) / 120000",
+    "backend_speed": "min(tokens_per_second, 512) / 512",
+    "plan_steps": "min(plan_steps, 8) / 8",
+    "computation_budget": "min(computation_budget, 4096) / 4096"
+  }
+}

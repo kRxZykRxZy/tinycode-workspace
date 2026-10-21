@@ -1,0 +1,22 @@
+# Dataset configuration.
+#
+# The Stack is the exclusive initial corpus.  No other corpus is mixed in
+# automatically; a local corpus directory can be selected explicitly.
+
+dataset:
+  source: the-stack
+  repo_id: bigcode/the-stack-smol
+  fallback_repo_ids:
+    - bigcode/the-stack-smol
+    - bigcode/the-stack-dedup
+  subset: default
+  languages: []
+  streaming: true
+  max_documents: 0
+  min_chars: 64
+  max_chars: 200000
+  dedup: true
+  dedup_hash_bits: 48
+  normalize: true
+  shard_size_mb: 512
+  num_workers: 4

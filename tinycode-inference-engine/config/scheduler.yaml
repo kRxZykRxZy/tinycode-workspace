@@ -1,0 +1,7 @@
+# Scheduler configuration.
+#
+# The queue is bounded; when it is full the server applies backpressure
+# instead of accepting unbounded work.
+
+max_active_requests: 8
+queue_capacity: 64

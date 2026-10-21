@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tinycode.local/schemas/dataset.schema.json",
+  "title": "TinyCode dataset configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source": { "type": "string", "enum": ["the-stack", "local"] },
+    "repo_id": { "type": "string" },
+    "fallback_repo_ids": { "type": "array", "items": { "type": "string" } },
+    "subset": { "type": "string" },
+    "languages": { "type": "array", "items": { "type": "string" } },
+    "streaming": { "type": "boolean" },
+    "max_documents": { "type": "integer", "minimum": 0 },
+    "min_chars": { "type": "integer", "minimum": 0 },
+    "max_chars": { "type": "integer", "minimum": 1 },
+    "dedup": { "type": "boolean" },
+    "dedup_hash_bits": { "type": "integer", "minimum": 8, "maximum": 64 },
+    "normalize": { "type": "boolean" },
+    "shard_size_mb": { "type": "integer", "minimum": 1 },
+    "num_workers": { "type": "integer", "minimum": 0 }
+  },
+  "required": ["source"]
+}

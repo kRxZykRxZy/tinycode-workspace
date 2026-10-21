@@ -1,0 +1,7 @@
+# Checkpoint configuration.
+
+checkpoint:
+  keep_last: 3
+  keep_every: 10
+  verify_integrity: true
+  atomic_write: true

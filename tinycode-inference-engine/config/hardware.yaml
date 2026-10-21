@@ -1,0 +1,9 @@
+# Hardware configuration.
+#
+# backend: auto | cuda | intel_gpu | arm_neon | cpu
+#
+# "auto" uses the capability based selection: CUDA, then a verified
+# Intel graphics provider, then ARM NEON, then the portable CPU path.
+
+backend: auto
+threads: null

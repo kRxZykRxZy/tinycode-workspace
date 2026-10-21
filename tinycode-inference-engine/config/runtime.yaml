@@ -1,0 +1,10 @@
+# Runtime configuration.
+#
+# model_paths lists the artifact directories that are loaded at startup.
+# The first entry is served under default_model_alias.
+
+model_paths: []
+default_model_alias: tinycode-local
+backend: auto
+threads: null
+telemetry_log: null

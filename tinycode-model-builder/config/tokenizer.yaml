@@ -1,0 +1,17 @@
+# Tokenizer configuration.
+#
+# A byte level BPE that is trained on source code.  The vocabulary target
+# is 98,304 tokens.
+
+tokenizer:
+  vocab_size: 98304
+  model_type: bpe
+  byte_fallback: true
+  special_tokens:
+    - "<|endoftext|>"
+    - "<|pad|>"
+    - "<|user|>"
+    - "<|assistant|>"
+    - "<|system|>"
+    - "<|code|>"
+    - "<|endofprompt|>"

@@ -1,0 +1,14 @@
+# TinyCode model builder - default configuration.
+#
+# The context length is NOT configurable.  It is hardcoded to 1024 tokens
+# in tinycode_builder.configuration.immutable_constraints and cannot be
+# overridden by this file, by an environment variable or by any API field.
+
+project:
+  name: tinycode
+  version: 0.1.0
+  runs_dir: runs
+  artifacts_dir: artifacts
+  data_dir: data
+  checkpoint_dir: checkpoints
+  report_dir: reports

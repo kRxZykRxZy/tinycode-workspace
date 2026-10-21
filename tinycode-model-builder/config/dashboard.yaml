@@ -1,0 +1,13 @@
+# Dashboard configuration.
+#
+# The dashboard binds to 127.0.0.1 by default and always requires a
+# token, independently of how it is exposed.
+
+dashboard:
+  enabled: true
+  host: 127.0.0.1
+  port: 8765
+  auth_required: true
+  auth_token: null
+  cloudflare_tunnel: false
+  refresh_seconds: 5

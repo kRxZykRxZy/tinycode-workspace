@@ -1,0 +1,14 @@
+# Resource safety policy.
+#
+# These are the starting thresholds; they should be validated on the
+# machine that actually runs the training.
+
+resource_policy:
+  cpu_memory_high: 0.75
+  cpu_memory_caution: 0.90
+  cpu_memory_critical: 0.95
+  gpu_memory_high: 0.75
+  gpu_memory_caution: 0.90
+  gpu_memory_critical: 0.95
+  disk_free_min_mb: 2048
+  poll_interval_seconds: 5.0

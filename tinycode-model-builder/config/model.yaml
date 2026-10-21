@@ -1,0 +1,20 @@
+# Model configuration.
+#
+# parameter_target is selected interactively when the builder starts and
+# is never changed silently.  vocabulary sizes are tried in the listed
+# order; the first one that admits an exact architecture is used.
+
+model:
+  parameter_target: 10000000
+  vocab_size: 98304
+  vocab_preference:
+    - 98304
+    - 49152
+    - 32768
+    - 16384
+    - 8192
+  architecture_id: tinycode-decoder-v1
+  max_layers: 64
+  min_head_dim: 16
+  preferred_ff_ratio: 4.0
+  activation: silu

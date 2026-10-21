@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tinycode-inference-engine"
+version = "0.1.0"
+description = "Custom inference runtime and OpenAI compatible API for TinyCode models."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "TinyCode" }]
+keywords = ["tinycode", "inference", "llm", "openai-compatible", "runtime"]
+
+dependencies = [
+    "numpy>=1.24",
+    "tokenizers>=0.15",
+    "safetensors>=0.4",
+    "pyyaml>=6.0",
+    "psutil>=5.9",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pydantic>=2.6",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4"]
+client = ["openai>=1.30"]
+openvino = ["openvino>=2024.0"]
+
+[project.scripts]
+tinycode-engine = "tinycode_engine.application.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

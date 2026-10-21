@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tinycode.local/schemas/resource_policy.schema.json",
+  "title": "TinyCode resource safety policy",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cpu_memory_high": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "cpu_memory_caution": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "cpu_memory_critical": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "gpu_memory_high": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "gpu_memory_caution": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "gpu_memory_critical": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "disk_free_min_mb": { "type": "integer", "minimum": 0 },
+    "poll_interval_seconds": { "type": "number", "exclusiveMinimum": 0 }
+  }
+}

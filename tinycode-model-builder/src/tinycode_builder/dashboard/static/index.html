@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TinyCode Training Dashboard</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         margin: 0; background: #101418; color: #e6e6e6; }
+  header { padding: 16px 24px; background: #182029; border-bottom: 1px solid #26303a; }
+  h1 { font-size: 18px; margin: 0; }
+  main { padding: 24px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card { background: #182029; border: 1px solid #26303a; border-radius: 8px; padding: 16px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #9fb0c0; margin: 0 0 10px; }
+  .value { font-size: 22px; font-variant-numeric: tabular-nums; }
+  .sub { color: #8fa0b0; font-size: 12px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 4px 0; }
+  td:first-child { color: #9fb0c0; }
+  td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  button { background: #2563eb; color: white; border: 0; border-radius: 6px; padding: 8px 14px;
+           margin: 0 8px 8px 0; cursor: pointer; font-size: 13px; }
+  button.secondary { background: #374151; }
+  button.danger { background: #b91c1c; }
+  pre { background: #0d1117; padding: 12px; border-radius: 6px; overflow: auto; max-height: 260px;
+        font-size: 12px; white-space: pre-wrap; }
+  .row { grid-column: 1 / -1; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+          background: #26303a; color: #cbd5e1; }
+  .pill.running { background: #14532d; color: #bbf7d0; }
+  .pill.stopped { background: #7f1d1d; color: #fecaca; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TinyCode training dashboard <span id="status" class="pill">connecting</span></h1>
+</header>
+<main>
+  <div class="card"><h2>Progress</h2><div class="value" id="tokens">-</div><div class="sub" id="tokens-sub">committed training tokens</div></div>
+  <div class="card"><h2>Loss</h2><div class="value" id="loss">-</div><div class="sub" id="loss-sub">training / validation</div></div>
+  <div class="card"><h2>Throughput</h2><div class="value" id="tps">-</div><div class="sub">tokens per second</div></div>
+  <div class="card"><h2>Step / LR</h2><div class="value" id="step">-</div><div class="sub" id="lr">-</div></div>
+  <div class="card"><h2>Model</h2><table>
+    <tr><td>Parameters</td><td id="params">-</td></tr>
+    <tr><td>Target</td><td id="target">-</td></tr>
+    <tr><td>Context</td><td>1024</td></tr>
+    <tr><td>ETA</td><td id="eta">-</td></tr>
+  </table></div>
+  <div class="card"><h2>Resources</h2><table>
+    <tr><td>GPU memory</td><td id="gpu-mem">-</td></tr>
+    <tr><td>System RAM</td><td id="ram">-</td></tr>
+    <tr><td>Disk free</td><td id="disk">-</td></tr>
+    <tr><td>Checkpoint</td><td id="ckpt">-</td></tr>
+  </table></div>
+  <div class="card row"><h2>Controls</h2>
+    <button onclick="control('checkpoint')">Safe checkpoint</button>
+    <button class="secondary" onclick="control('pause')">Pause</button>
+    <button class="secondary" onclick="control('resume')">Resume</button>
+    <button class="danger" onclick="control('stop')">Stop gracefully</button>
+    <div class="sub" id="control-result"></div>
+  </div>
+  <div class="card row"><h2>Logs</h2><pre id="logs">no logs yet</pre></div>
+</main>
+<script>
+const token = new URLSearchParams(location.search).get("token");
+function authHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = "Bearer " + token;
+  return headers;
+}
+function fmt(n) {
+  if (n === null || n === undefined) return "-";
+  if (typeof n === "number" && n >= 1000) return n.toLocaleString();
+  return String(n);
+}
+function bytes(n) {
+  if (n === null || n === undefined) return "-";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let value = n, i = 0;
+  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
+  return value.toFixed(1) + " " + units[i];
+}
+async function control(action) {
+  const response = await fetch("/api/control/" + action, { method: "POST", headers: authHeaders() });
+  const payload = await response.json().catch(() => ({}));
+  document.getElementById("control-result").textContent =
+    action + ": " + (payload.message || (response.ok ? "ok" : "failed"));
+}
+async function refresh() {
+  try {
+    const response = await fetch("/api/state" + (token ? "?token=" + encodeURIComponent(token) : ""),
+                                 { headers: authHeaders() });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const state = await response.json();
+    const status = document.getElementById("status");
+    status.textContent = state.running ? "running" : "idle";
+    status.className = "pill " + (state.running ? "running" : "stopped");
+    document.getElementById("tokens").textContent = fmt(state.committed_training_tokens);
+    document.getElementById("tokens-sub").textContent =
+      "of " + fmt(state.target_training_tokens) + " target tokens";
+    document.getElementById("loss").textContent = state.loss ? state.loss.toFixed(4) : "-";
+    document.getElementById("loss-sub").textContent =
+      "train " + (state.loss ? state.loss.toFixed(4) : "-") +
+      " / val " + (state.validation_loss ? state.validation_loss.toFixed(4) : "-");
+    document.getElementById("tps").textContent = state.tokens_per_second ? state.tokens_per_second.toFixed(1) : "-";
+    document.getElementById("step").textContent = fmt(state.step);
+    document.getElementById("lr").textContent = "lr " + (state.learning_rate || 0).toExponential(2);
+    document.getElementById("params").textContent = fmt(state.parameter_count);
+    document.getElementById("target").textContent = fmt(state.parameter_target);
+    document.getElementById("eta").textContent = state.eta_seconds ? fmt(Math.round(state.eta_seconds)) + "s" : "-";
+    document.getElementById("gpu-mem").textContent = bytes(state.gpu_memory_used);
+    document.getElementById("ram").textContent = state.system_ram_used_ratio !== null && state.system_ram_used_ratio !== undefined
+      ? (state.system_ram_used_ratio * 100).toFixed(1) + "%" : "-";
+    document.getElementById("disk").textContent = bytes(state.disk_free_bytes);
+    document.getElementById("ckpt").textContent = state.checkpoint_step ? "step " + state.checkpoint_step : "-";
+
+    const logsResponse = await fetch("/api/logs?limit=50" + (token ? "&token=" + encodeURIComponent(token) : ""),
+                                     { headers: authHeaders() });
+    if (logsResponse.ok) {
+      const payload = await logsResponse.json();
+      document.getElementById("logs").textContent = payload.logs.map(
+        (entry) => new Date(entry.timestamp * 1000).toISOString() + " [" + entry.level + "] " + entry.message
+      ).join("\n") || "no logs yet";
+    }
+  } catch (error) {
+    document.getElementById("status").textContent = "disconnected";
+    document.getElementById("status").className = "pill stopped";
+  }
+}
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

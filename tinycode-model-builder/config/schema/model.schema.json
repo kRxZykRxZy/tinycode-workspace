@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tinycode.local/schemas/model.schema.json",
+  "title": "TinyCode model configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "parameter_target": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Selected number of trainable parameters. Never changed without user input."
+    },
+    "vocab_size": { "type": "integer", "minimum": 1 },
+    "vocab_preference": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "architecture_id": { "type": "string", "const": "tinycode-decoder-v1" },
+    "max_layers": { "type": "integer", "minimum": 1 },
+    "min_head_dim": { "type": "integer", "minimum": 1 },
+    "preferred_ff_ratio": { "type": "number", "exclusiveMinimum": 0 },
+    "activation": { "type": "string", "enum": ["silu", "gelu"] }
+  },
+  "required": ["parameter_target", "vocab_size"]
+}

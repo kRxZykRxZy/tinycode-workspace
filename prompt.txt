@@ -1,0 +1,2265 @@
+MASTER ENGINEERING PROMPT
+TINYCODE MODEL BUILDER + ADAPTIVE INFERENCE ENGINE
+TWO REPOSITORIES, ONE INTEGRATED SYSTEM
+===============================================================
+
+ROLE
+===============================================================
+
+Act as a principal software architect, machine-learning researcher,
+PyTorch engineer, inference-runtime engineer, CUDA engineer, C++
+systems engineer, compiler engineer, API engineer, and MLOps engineer.
+
+Your mission is to BUILD a real, highly modular, production-oriented
+coding-model development and inference system.
+
+Do not merely write documentation, diagrams, pseudocode, isolated
+examples, or a prototype that only works on one machine.
+
+Inspect the available workspace and existing repositories first.
+Preserve useful code, respect existing user changes, and avoid
+overwriting checkpoints or valuable files.
+
+Implement the system incrementally, connect its components, run tests,
+fix integration problems, and report actual results.
+
+The system must contain TWO INDEPENDENT REPOSITORIES inside ONE
+workspace:
+
+REPOSITORY A:
+TinyCode Model Builder
+Responsible for model configuration, architecture construction,
+tokenization, dataset preparation, training, evaluation, checkpoints,
+adaptive-budget policy training, and model artifact production.
+
+REPOSITORY B:
+TinyCode Inference Engine
+Responsible for model loading, inference execution, hardware backends,
+adaptive computation budgets, scheduling, KV caching where appropriate,
+OpenAI-compatible APIs, streaming, batching, metrics, and deployment.
+
+Both repositories must have their own source trees, dependency
+definitions, tests, documentation, and release versions.
+
+They must be independently testable and buildable while integrating
+through a versioned model-artifact specification and shared API contract.
+
+Do not create two artificial directories that depend on a single
+monolithic Python implementation. Build two genuinely modular
+codebases with explicit interfaces and minimal coupling.
+
+The main user-facing command in the model-builder repository is:
+
+    python main.py
+
+The inference repository must also provide a simple documented way
+to launch its server and a command-line entry point for diagnostics.
+
+Normal operation should use interactive prompts where appropriate.
+Do not require command-line flags for ordinary model-building tasks.
+
+===============================================================
+1. PRODUCT VISION
+===============================================================
+
+Build a compact coding-model platform whose defining feature is
+QUALITY- AND BUDGET-AWARE COMPUTATION.
+
+The system should not merely execute a fixed amount of computation
+for every prompt.
+
+Instead, it should estimate how difficult a request is, understand
+the user's latency and output requirements, determine an appropriate
+computation budget, and allocate supported reasoning or verification
+steps accordingly.
+
+The platform should contain:
+
+1. A configurable model-building system.
+2. A strict model-parameter accounting mechanism.
+3. A fixed-context causal coding model.
+4. A coding-oriented tokenizer.
+5. A dedicated data preparation pipeline.
+6. A training engine.
+7. A learned or trainable adaptive-budget controller where supported.
+8. An inference-time budget scheduler.
+9. A custom inference runtime.
+10. Hardware-specific execution backends.
+11. An OpenAI-compatible HTTP API.
+12. A continuous-batching scheduler.
+13. A monitoring and diagnostics system.
+14. Reliable checkpoints and model artifact management.
+15. Automated tests and benchmark tools.
+
+The design should allow the model, budget controller, and inference
+engine to evolve independently without breaking the integration
+contract.
+
+Do not claim that a small model can match frontier coding models
+without experimental evidence. Build the mechanisms needed to improve
+quality per unit of computation, then measure whether they work.
+
+===============================================================
+2. GLOBAL HARD CONSTRAINTS
+===============================================================
+
+CONTEXT LENGTH:
+
+    CONTEXT_LENGTH = 1024
+
+The context length is permanently hardcoded to exactly 1,024 tokens.
+
+This restriction applies to:
+
+- Model architecture.
+- Training sequences.
+- Token packing.
+- Positional embeddings or positional encoding.
+- Attention masks.
+- Inference requests.
+- Conversation history.
+- Prompt construction.
+- API validation.
+- Scheduler admission.
+- KV-cache allocation.
+- Evaluation.
+- Model configuration.
+- Checkpoint loading.
+- Export metadata.
+- Hardware-specific backends.
+
+Do not implement adaptive context allocation.
+
+Do not implement longer context tiers.
+
+Do not expose context length as a user-configurable setting.
+
+Do not allow configuration files, environment variables, API request
+fields, dashboard controls, or hardware detection to override 1,024.
+
+Reject or explicitly truncate inputs that exceed the supported limit.
+Document the policy and preserve room for requested output tokens.
+
+For chat requests, the prompt budget includes message boundaries,
+system instructions, conversation history, tool descriptions where
+applicable, and all other tokens inserted into the model input.
+
+A request with a 900-token prompt and a requested 300-token completion
+cannot be treated as though both fit into a 1,024-token total context.
+Handle the distinction between prompt length and output budget correctly.
+
+PARAMETER COUNT:
+
+The parameter target MUST NOT be universally hardcoded.
+
+When the user runs:
+
+    python main.py
+
+ask for the target number of trainable parameters.
+
+Default:
+
+    10M
+
+Allow supported values such as:
+
+    1M
+    10M
+    25M
+    50M
+    100M
+    500M
+    1B
+
+Parse shorthand correctly and validate feasibility before allocation.
+
+Construct the architecture around the chosen target.
+
+Count all trainable parameters, including embeddings, output heads,
+normalization layers, controllers, and other trainable modules.
+
+Require the actual trainable parameter count to match the selected
+target exactly. If a target cannot be achieved by a supported
+architecture, explain why and offer alternatives.
+
+Never add unused trainable parameters merely to satisfy the count.
+
+Record the selected target and verified actual count in checkpoints,
+model manifests, evaluation reports, and exported artifacts.
+
+The parameter target is configurable. The context length is not.
+
+TRAINING TARGET:
+
+Default:
+
+    200,000,000 training tokens
+
+Allow the user to select a different target interactively.
+
+Validation tokens must never count toward the training-token target.
+Count only successfully committed training tokens.
+
+DATASET:
+
+Use The Stack from Hugging Face as the exclusive initial training
+corpus. Do not silently add unrelated datasets or generated corpora.
+
+TOKENIZER:
+
+Target vocabulary:
+
+    98,304 tokens
+
+Use a coding-oriented BPE tokenizer unless a demonstrated technical
+constraint requires a different approach.
+
+INITIAL TRAINING ENVIRONMENT:
+
+Google Colab with an NVIDIA T4 GPU, subject to actual runtime
+availability and detected memory.
+
+GOOGLE DRIVE:
+
+Use Colab's built-in Python module:
+
+    from google.colab import drive
+
+Mount Drive using:
+
+    drive.mount('/content/drive')
+
+Only import google.colab on the Colab-specific execution path.
+Outside Colab, use local storage and explain the limitation.
+
+INFERENCE:
+
+Use the custom TinyCode Inference Engine. Do not make an external
+inference server a mandatory runtime dependency.
+
+===============================================================
+3. WORKSPACE ORGANIZATION
+===============================================================
+
+Create a workspace containing two separate repositories:
+
+tinycode-workspace/
+|
+|-- tinycode-model-builder/
+|
+|-- tinycode-inference-engine/
+|
+|-- contracts/
+|
+|-- integration-tests/
+|
+|-- benchmarks/
+|
+|-- docs/
+|
+|-- scripts/
+|
+|-- README.md
+|
+|-- WORKSPACE.md
+
+The two repositories must be independently versioned.
+
+The contracts directory contains versioned interface specifications,
+schemas, golden test fixtures, and artifact-format definitions. Avoid
+making it a third mandatory runtime repository.
+
+Shared contracts must be versioned and testable.
+
+If an existing repository already exists, inspect its layout before
+creating directories. Do not duplicate the project unnecessarily.
+
+===============================================================
+4. REPOSITORY A — TINYCODE MODEL BUILDER
+===============================================================
+
+RESPONSIBILITY
+
+This repository creates, trains, evaluates, checkpoints, and exports
+the model and any trainable adaptive-budget components.
+
+It must not contain the entire serving runtime.
+
+It should produce model artifacts that the separate inference engine
+can load through a documented and versioned interface.
+
+REQUIRED DIRECTORY STRUCTURE
+
+tinycode-model-builder/
+|
+|-- main.py
+|-- README.md
+|-- pyproject.toml
+|-- requirements.txt
+|-- .gitignore
+|-- LICENSE
+|
+|-- config/
+|   |-- defaults.yaml
+|   |-- model.yaml
+|   |-- training.yaml
+|   |-- dataset.yaml
+|   |-- tokenizer.yaml
+|   |-- optimization.yaml
+|   |-- checkpoint.yaml
+|   |-- resource_policy.yaml
+|   |-- evaluation.yaml
+|   |-- export.yaml
+|   |-- dashboard.yaml
+|   `-- schema/
+|
+|-- src/
+|   `-- tinycode_builder/
+|       |-- __init__.py
+|       |
+|       |-- application/
+|       |   |-- cli.py
+|       |   |-- menu.py
+|       |   |-- prompts.py
+|       |   |-- workflows.py
+|       |   `-- session.py
+|       |
+|       |-- configuration/
+|       |   |-- loader.py
+|       |   |-- validation.py
+|       |   |-- defaults.py
+|       |   |-- parameter_parser.py
+|       |   `-- immutable_constraints.py
+|       |
+|       |-- hardware/
+|       |   |-- detection.py
+|       |   |-- cuda_info.py
+|       |   |-- memory_info.py
+|       |   `-- capability_report.py
+|       |
+|       |-- model/
+|       |   |-- factory.py
+|       |   |-- architecture.py
+|       |   |-- causal_model.py
+|       |   |-- embeddings.py
+|       |   |-- attention.py
+|       |   |-- normalization.py
+|       |   |-- output_head.py
+|       |   |-- positional_encoding.py
+|       |   |-- initialization.py
+|       |   `-- parameter_accounting.py
+|       |
+|       |-- budget/
+|       |   |-- controller.py
+|       |   |-- features.py
+|       |   |-- policy.py
+|       |   |-- budget_targets.py
+|       |   |-- calibration.py
+|       |   |-- training_objectives.py
+|       |   |-- policy_dataset.py
+|       |   `-- evaluation.py
+|       |
+|       |-- tokenizer/
+|       |   |-- trainer.py
+|       |   |-- loader.py
+|       |   |-- special_tokens.py
+|       |   |-- fingerprint.py
+|       |   `-- benchmark.py
+|       |
+|       |-- data/
+|       |   |-- stack_client.py
+|       |   |-- access_validation.py
+|       |   |-- schema_detection.py
+|       |   |-- filtering.py
+|       |   |-- deduplication.py
+|       |   |-- normalization.py
+|       |   |-- splitting.py
+|       |   |-- packing.py
+|       |   |-- token_accounting.py
+|       |   |-- shard_state.py
+|       |   `-- pipeline.py
+|       |
+|       |-- training/
+|       |   |-- trainer.py
+|       |   |-- train_step.py
+|       |   |-- optimizer.py
+|       |   |-- scheduler.py
+|       |   |-- precision.py
+|       |   |-- gradient_accumulation.py
+|       |   |-- validation.py
+|       |   |-- metrics.py
+|       |   `-- stopping.py
+|       |
+|       |-- resources/
+|       |   |-- monitor.py
+|       |   |-- memory_estimator.py
+|       |   |-- adaptive_batch.py
+|       |   |-- recovery.py
+|       |   |-- watchdog.py
+|       |   `-- thresholds.py
+|       |
+|       |-- checkpoint/
+|       |   |-- manager.py
+|       |   |-- serializer.py
+|       |   |-- integrity.py
+|       |   |-- resume.py
+|       |   |-- retention.py
+|       |   `-- manifest.py
+|       |
+|       |-- storage/
+|       |   |-- local.py
+|       |   |-- colab_drive.py
+|       |   |-- atomic_copy.py
+|       |   |-- synchronization.py
+|       |   `-- storage_policy.py
+|       |
+|       |-- evaluation/
+|       |   |-- loss.py
+|       |   |-- perplexity.py
+|       |   |-- code_tasks.py
+|       |   |-- benchmark_runner.py
+|       |   `-- reports.py
+|       |
+|       |-- export/
+|       |   |-- pytorch_export.py
+|       |   |-- safetensors_export.py
+|       |   |-- gguf_export.py
+|       |   |-- quantization.py
+|       |   |-- artifact_manifest.py
+|       |   `-- verification.py
+|       |
+|       |-- dashboard/
+|       |   |-- server.py
+|       |   |-- authentication.py
+|       |   |-- state.py
+|       |   |-- metrics_api.py
+|       |   |-- controls.py
+|       |   |-- tunnel.py
+|       |   `-- static/
+|       |
+|       |-- telemetry/
+|       |   |-- events.py
+|       |   |-- logging.py
+|       |   |-- counters.py
+|       |   `-- diagnostics.py
+|       |
+|       `-- utils/
+|           |-- paths.py
+|           |-- atomic_io.py
+|           |-- reproducibility.py
+|           `-- errors.py
+|
+|-- tests/
+|   |-- unit/
+|   |-- integration/
+|   |-- recovery/
+|   |-- data/
+|   |-- contracts/
+|   `-- fixtures/
+|
+|-- scripts/
+|   |-- inspect_dataset.py
+|   |-- prepare_dataset.py
+|   |-- train_tokenizer.py
+|   |-- benchmark_tokenizer.py
+|   `-- validate_artifact.py
+|
+|-- artifacts/
+|   `-- .gitkeep
+|
+|-- runs/
+|   `-- .gitkeep
+|
+`-- docs/
+    |-- architecture.md
+    |-- training.md
+    |-- dataset.md
+    |-- checkpoints.md
+    |-- budget-controller.md
+    `-- troubleshooting.md
+
+This is a target structure, not permission to create empty modules
+instead of implementing the system. Every module must have a clear
+responsibility and real functionality.
+
+===============================================================
+5. REPOSITORY B — TINYCODE INFERENCE ENGINE
+===============================================================
+
+RESPONSIBILITY
+
+Build a custom inference engine designed for the TinyCode model
+format, with a clean backend interface and an OpenAI-compatible API.
+
+The inference engine must not depend on the model-builder training
+environment being installed.
+
+It should load exported model artifacts and serve inference requests
+without importing training code.
+
+Use Python for orchestration and API services, and use C++ for
+performance-sensitive runtime components where beneficial.
+
+Use CUDA when available and compatible. Provide an Intel integrated
+graphics backend when a supported execution provider is available.
+Provide ARM NEON acceleration on compatible ARM CPUs. Always provide
+a dependable CPU fallback.
+
+Do not claim a hardware backend is available merely because the
+machine has a matching brand or processor.
+
+REQUIRED DIRECTORY STRUCTURE
+
+tinycode-inference-engine/
+|
+|-- main.py
+|-- README.md
+|-- pyproject.toml
+|-- requirements.txt
+|-- CMakeLists.txt
+|-- .gitignore
+|-- LICENSE
+|
+|-- config/
+|   |-- server.yaml
+|   |-- runtime.yaml
+|   |-- scheduler.yaml
+|   |-- budget_policy.yaml
+|   |-- cache.yaml
+|   |-- hardware.yaml
+|   |-- security.yaml
+|   `-- schema/
+|
+|-- src/
+|   `-- tinycode_engine/
+|       |-- __init__.py
+|       |
+|       |-- application/
+|       |   |-- cli.py
+|       |   |-- commands.py
+|       |   |-- lifecycle.py
+|       |   `-- service.py
+|       |
+|       |-- api/
+|       |   |-- app.py
+|       |   |-- dependencies.py
+|       |   |-- errors.py
+|       |   |-- middleware.py
+|       |   |-- authentication.py
+|       |   |-- health.py
+|       |   |-- models.py
+|       |   |-- completions.py
+|       |   |-- chat_completions.py
+|       |   |-- embeddings.py
+|       |   |-- responses.py
+|       |   |-- usage.py
+|       |   `-- schemas/
+|       |
+|       |-- protocol/
+|       |   |-- openai_compat.py
+|       |   |-- request_validation.py
+|       |   |-- response_serialization.py
+|       |   |-- errors.py
+|       |   `-- streaming.py
+|       |
+|       |-- artifacts/
+|       |   |-- loader.py
+|       |   |-- manifest.py
+|       |   |-- tokenizer.py
+|       |   |-- compatibility.py
+|       |   |-- integrity.py
+|       |   `-- registry.py
+|       |
+|       |-- runtime/
+|       |   |-- engine.py
+|       |   |-- execution_graph.py
+|       |   |-- operators.py
+|       |   |-- tensor.py
+|       |   |-- memory.py
+|       |   |-- precision.py
+|       |   |-- quantization.py
+|       |   |-- kernel_dispatch.py
+|       |   |-- synchronization.py
+|       |   `-- errors.py
+|       |
+|       |-- backends/
+|       |   |-- interface.py
+|       |   |-- registry.py
+|       |   |-- detection.py
+|       |   |
+|       |   |-- cuda/
+|       |   |   |-- backend.py
+|       |   |   |-- memory.py
+|       |   |   |-- kernels.py
+|       |   |   |-- operators.py
+|       |   |   `-- capabilities.py
+|       |   |
+|       |   |-- intel_gpu/
+|       |   |   |-- backend.py
+|       |   |   |-- provider.py
+|       |   |   |-- operators.py
+|       |   |   `-- capabilities.py
+|       |   |
+|       |   |-- arm_neon/
+|       |   |   |-- backend.py
+|       |   |   |-- operators.py
+|       |   |   `-- capabilities.py
+|       |   |
+|       |   `-- cpu/
+|       |       |-- backend.py
+|       |       |-- operators.py
+|       |       |-- threading.py
+|       |       |-- vectorization.py
+|       |       `-- capabilities.py
+|       |
+|       |-- model/
+|       |   |-- interface.py
+|       |   |-- loader.py
+|       |   |-- model_adapter.py
+|       |   |-- tokenizer_adapter.py
+|       |   |-- positional_encoding.py
+|       |   |-- attention.py
+|       |   |-- normalization.py
+|       |   `-- output_head.py
+|       |
+|       |-- generation/
+|       |   |-- generator.py
+|       |   |-- greedy.py
+|       |   |-- sampling.py
+|       |   |-- stopping.py
+|       |   |-- repetition.py
+|       |   |-- logits_processing.py
+|       |   `-- stream.py
+|       |
+|       |-- budget/
+|       |   |-- controller.py
+|       |   |-- request_analyzer.py
+|       |   |-- complexity_estimator.py
+|       |   |-- policy.py
+|       |   |-- budget_allocator.py
+|       |   |-- scheduler.py
+|       |   |-- verification.py
+|       |   |-- confidence.py
+|       |   |-- stopping.py
+|       |   |-- telemetry.py
+|       |   `-- safeguards.py
+|       |
+|       |-- orchestration/
+|       |   |-- request_pipeline.py
+|       |   |-- planner.py
+|       |   |-- task_decomposer.py
+|       |   |-- execution_controller.py
+|       |   |-- result_synthesizer.py
+|       |   `-- verification_pipeline.py
+|       |
+|       |-- cache/
+|       |   |-- kv_cache.py
+|       |   |-- prefix_cache.py
+|       |   |-- token_cache.py
+|       |   |-- cache_policy.py
+|       |   `-- eviction.py
+|       |
+|       |-- scheduling/
+|       |   |-- request_queue.py
+|       |   |-- continuous_batching.py
+|       |   |-- admission.py
+|       |   |-- priorities.py
+|       |   |-- cancellation.py
+|       |   `-- backpressure.py
+|       |
+|       |-- hardware/
+|       |   |-- discovery.py
+|       |   |-- capabilities.py
+|       |   |-- selection.py
+|       |   |-- telemetry.py
+|       |   `-- fallback.py
+|       |
+|       |-- memory/
+|       |   |-- allocator.py
+|       |   |-- arena.py
+|       |   |-- accounting.py
+|       |   |-- pressure.py
+|       |   `-- cleanup.py
+|       |
+|       |-- server/
+|       |   |-- lifecycle.py
+|       |   |-- worker.py
+|       |   |-- worker_pool.py
+|       |   |-- startup.py
+|       |   `-- shutdown.py
+|       |
+|       |-- observability/
+|       |   |-- metrics.py
+|       |   |-- logging.py
+|       |   |-- tracing.py
+|       |   |-- health.py
+|       |   `-- diagnostics.py
+|       |
+|       |-- security/
+|       |   |-- api_keys.py
+|       |   |-- rate_limits.py
+|       |   |-- request_limits.py
+|       |   `-- input_validation.py
+|       |
+|       `-- utils/
+|           |-- platform.py
+|           |-- timers.py
+|           |-- errors.py
+|           `-- version.py
+|
+|-- native/
+|   |-- CMakeLists.txt
+|   |-- include/
+|   |   `-- tinycode/
+|   |       |-- backend.hpp
+|   |       |-- tensor.hpp
+|   |       |-- memory.hpp
+|   |       `-- operators.hpp
+|   |
+|   |-- src/
+|   |   |-- core/
+|   |   |-- cpu/
+|   |   |-- arm_neon/
+|   |   |-- cuda/
+|   |   `-- intel_gpu/
+|   |
+|   `-- tests/
+|
+|-- tests/
+|   |-- unit/
+|   |-- integration/
+|   |-- api/
+|   |-- backends/
+|   |-- compatibility/
+|   |-- streaming/
+|   |-- scheduling/
+|   |-- budget/
+|   `-- fixtures/
+|
+|-- benchmarks/
+|   |-- throughput.py
+|   |-- latency.py
+|   |-- backend_comparison.py
+|   |-- budget_quality.py
+|   `-- memory_usage.py
+|
+|-- examples/
+|   |-- python_client.py
+|   |-- streaming_client.py
+|   `-- curl_requests.sh
+|
+|-- models/
+|   `-- .gitkeep
+|
+`-- docs/
+    |-- architecture.md
+    |-- backends.md
+    |-- api.md
+    |-- adaptive-budget.md
+    |-- memory-management.md
+    |-- deployment.md
+    `-- troubleshooting.md
+
+This structure is intentionally detailed. Refine it where necessary,
+but preserve modular boundaries and independent backend interfaces.
+
+Do not create dozens of empty files just to match the tree.
+
+Implement coherent vertical slices and expand systematically.
+
+===============================================================
+6. THE ADAPTIVE COMPUTATION BUDGET LAYER
+===============================================================
+
+This is a central architectural feature, not an optional cosmetic
+addition.
+
+Implement a distinct budget-control subsystem in the inference engine,
+with related trainable components in the model-builder repository.
+
+The budget layer decides how much additional computation a request
+should receive within the capabilities of the actual model.
+
+It must balance:
+
+- Expected answer quality.
+- Request difficulty.
+- Output requirements.
+- Latency.
+- Available memory.
+- Available compute.
+- Queue pressure.
+- Requested maximum output tokens.
+- Verification requirements.
+- The user's requested budget where supported.
+
+The budget layer must not pretend to improve model capability simply
+by assigning more computation. It must use supported operations and
+measure whether additional computation improves outcomes.
+
+Define an explicit request-budget object containing fields such as:
+
+- Request identifier.
+- Estimated task complexity.
+- Requested latency target, if supplied.
+- Requested compute budget, if supplied.
+- Maximum permitted generation tokens.
+- Maximum allowed internal steps.
+- Verification allowance.
+- Deadline.
+- Memory estimate.
+- Selected policy.
+- Allocated budget.
+- Actual consumed budget.
+- Stop reason.
+
+Use typed, validated structures.
+
+Do not allow user-provided budgets to bypass server resource limits.
+
+===============================================================
+7. DEFINE AND IMPLEMENT THE COMPUTATION LAYERS
+===============================================================
+
+Build the following conceptual layers as explicit modules with defined
+inputs, outputs, interfaces, and tests.
+
+These layers must work together. They are not all independent neural
+networks, and they do not all need trainable parameters.
+
+LAYER 1 — REQUEST INTAKE
+
+Accept the user's request through the API or local inference interface.
+
+Responsibilities:
+
+- Parse the request.
+- Validate input length.
+- Validate generation settings.
+- Identify the task type where possible.
+- Extract explicit quality, latency, and token constraints.
+- Normalize the request into an internal representation.
+- Preserve the original user intent.
+- Reject unsupported operations safely.
+
+Output:
+A validated internal request object.
+
+LAYER 2 — TASK AND COMPLEXITY ANALYSIS
+
+Estimate the difficulty of the task before expensive execution.
+
+Consider features such as:
+
+- Input length.
+- Task category.
+- Number of requested subtasks.
+- Whether the task requires code generation, explanation,
+  transformation, debugging, or structured output.
+- Whether the user explicitly requests verification.
+- Available historical performance for similar task categories.
+- The model's observed uncertainty signals, where available.
+
+Start with a transparent, deterministic baseline.
+
+Add a learned complexity estimator only when appropriate training
+signals and evaluation data exist.
+
+Do not pretend that prompt length alone measures task difficulty.
+
+Output:
+A complexity estimate, task category, and uncertainty estimate.
+
+LAYER 3 — INITIAL BUDGET ALLOCATION
+
+Convert the complexity estimate and request constraints into an
+initial computation budget.
+
+Consider:
+
+- Estimated task difficulty.
+- Available hardware.
+- Queue pressure.
+- Memory availability.
+- Latency constraints.
+- Maximum generation length.
+- Verification requirements.
+
+Use bounded policies such as:
+
+- Minimal budget.
+- Standard budget.
+- Extended budget.
+- Verification-enabled budget.
+
+These are computation policies, not context-length tiers.
+
+The fixed context remains 1,024 tokens in every policy.
+
+Output:
+An initial request-budget allocation.
+
+LAYER 4 — PLANNING AND SUBTASK DECOMPOSITION
+
+For tasks that benefit from planning, create a compact internal plan
+or TODO-like sequence of actions.
+
+Examples:
+
+- Identify the requested result.
+- Determine relevant code structures.
+- Generate a candidate solution.
+- Inspect possible errors.
+- Verify consistency.
+- Produce the final response.
+
+The plan must be bounded by the request budget.
+
+Do not force planning for every trivial request.
+
+Do not generate arbitrarily long plans, and do not assume that a
+longer plan necessarily improves the answer.
+
+The planner may be rule-based initially, then improved through
+measured experiments.
+
+If an internal plan is represented as tokens for the same model,
+those tokens must obey the fixed context constraints. The system
+must not concatenate hidden reasoning into an input longer than
+1,024 tokens.
+
+Output:
+A bounded execution plan.
+
+LAYER 5 — MODEL EXECUTION
+
+Execute the actual model using the selected backend.
+
+Responsibilities:
+
+- Tokenize the prompt.
+- Validate the fixed context limit.
+- Run the causal model.
+- Apply supported generation settings.
+- Track actual compute and token usage.
+- Check cancellation and deadline conditions.
+- Report backend errors to the scheduler.
+
+Additional computation must correspond to real supported operations,
+such as additional generation, an explicitly supported second pass,
+or verification.
+
+Do not simulate additional reasoning by incrementing a counter.
+
+Output:
+A candidate response and execution telemetry.
+
+LAYER 6 — CONFIDENCE AND UNCERTAINTY ESTIMATION
+
+Estimate uncertainty using measurable signals.
+
+Potential signals include:
+
+- Token probability distributions.
+- Entropy.
+- Agreement between genuinely independent candidate attempts.
+- Calibration results.
+- Task-specific validation signals.
+- Known failure patterns.
+- Verification outcomes.
+
+Do not equate a high probability with factual correctness.
+
+Do not label an uncalibrated heuristic as a reliable confidence score.
+
+Begin with clearly named heuristic signals and document their limits.
+
+Output:
+Uncertainty estimates and evidence for whether additional work
+might improve the answer.
+
+LAYER 7 — ADAPTIVE COMPUTATION DECISION
+
+Evaluate whether additional computation is justified.
+
+Possible decisions:
+
+- Accept the current candidate.
+- Continue generation within the remaining budget.
+- Run another supported pass.
+- Invoke a configured verification stage.
+- Stop because the budget is exhausted.
+- Stop because the deadline is reached.
+- Stop because additional work is unlikely to help.
+
+Use explicit policy rules with bounded costs.
+
+Where a learned policy is available, compare it against the
+deterministic baseline.
+
+Never allow indefinite loops.
+
+Output:
+A continuation decision and the updated remaining budget.
+
+LAYER 8 — VERIFICATION
+
+Implement optional verification appropriate to the task.
+
+Possible techniques:
+
+- Check output structure.
+- Check whether requested sections are present.
+- Validate JSON syntax.
+- Validate code delimiters and formatting.
+- Run safe, explicitly configured syntax checks.
+- Compare candidate responses using a defined scoring method.
+- Check consistency against the original request.
+- Use a separately configured verifier model only when available.
+
+Do not execute generated code on the host without an explicit,
+isolated sandbox and suitable security controls.
+
+Do not claim that a response is correct merely because it passed
+a formatting check.
+
+Output:
+Verification evidence, detected errors, and a decision about
+whether another attempt is justified.
+
+LAYER 9 — BUDGET-AWARE FINALIZATION
+
+Produce the final response when the system's stopping policy says
+that additional computation is not justified or is not permitted.
+
+Ensure the final output:
+
+- Satisfies the request format.
+- Respects the token budget.
+- Preserves important details.
+- Does not expose internal debugging information.
+- Does not claim verification that did not occur.
+- Is returned through the requested API format.
+
+Output:
+The final candidate and truthful usage metadata.
+
+LAYER 10 — FEEDBACK AND CALIBRATION
+
+Record useful aggregate measurements such as:
+
+- Task category.
+- Initial budget.
+- Actual budget consumed.
+- Latency.
+- Token usage.
+- Verification outcome.
+- User-provided evaluation feedback where explicitly available.
+- Benchmark results.
+- Whether additional computation improved the outcome.
+
+Avoid collecting sensitive request content unnecessarily.
+
+Use this data to evaluate policy quality, calibrate uncertainty,
+and improve future budget allocation.
+
+Do not silently train on private user requests.
+
+Any training-data collection must have an explicit, documented policy
+and appropriate user consent.
+
+Output:
+Evaluation records suitable for offline policy improvement.
+
+===============================================================
+8. IMPORTANT DISTINCTION: CONTEXT, COMPUTATION, AND OUTPUT
+===============================================================
+
+The adaptive budget layer may change supported computation allocation.
+
+It must NEVER change the 1,024-token context length.
+
+Keep these concepts separate:
+
+CONTEXT LENGTH:
+The maximum input sequence supported by the model.
+
+OUTPUT BUDGET:
+The maximum generated tokens requested or permitted.
+
+COMPUTATION BUDGET:
+The maximum work the system may spend on a request.
+
+VERIFICATION BUDGET:
+The work allocated to supported checks or additional passes.
+
+LATENCY BUDGET:
+The deadline or response-time target.
+
+MEMORY BUDGET:
+The maximum resources a request may consume under the runtime's
+admission and safety policies.
+
+These budgets have different units and cannot be treated as
+interchangeable.
+
+A request with a larger computation budget does not automatically
+receive more context or a longer output.
+
+===============================================================
+9. TRAINABLE BUDGET CONTROLLER
+===============================================================
+
+Implement the controller interface in both repositories, with clear
+separation between model training and inference policy execution.
+
+The model-builder repository should support experimentation with
+a trainable controller when there is a meaningful training objective.
+
+Possible controller inputs:
+
+- Task features.
+- Difficulty estimates.
+- Model uncertainty signals.
+- Hardware capability features.
+- Latency target.
+- Available computation budget.
+- Historical calibration features.
+
+Possible controller outputs:
+
+- Initial budget recommendation.
+- Whether planning is warranted.
+- Whether verification is warranted.
+- Whether an additional supported pass is warranted.
+- A stopping recommendation.
+
+The controller must respect strict maximum-budget limits.
+
+The inference engine must remain functional without a trained
+controller by using a deterministic baseline policy.
+
+Do not make the model unservable because controller weights are
+missing or incompatible.
+
+Train and evaluate the controller against measurable objectives,
+such as answer quality under a fixed compute budget, latency at a
+target quality, or compute required to meet a target evaluation score.
+
+Do not optimize solely for token probability if the actual objective
+is verified coding-task performance.
+
+Save controller artifacts, feature schemas, policy versions,
+calibration metadata, and compatibility information.
+
+===============================================================
+10. CUSTOM INFERENCE RUNTIME
+===============================================================
+
+Build a real inference execution layer rather than making the API
+call a remote model provider.
+
+The engine should own:
+
+- Artifact loading.
+- Tokenizer integration.
+- Model execution.
+- Backend selection.
+- Tensor movement.
+- Memory allocation.
+- Precision selection.
+- Generation.
+- Budget enforcement.
+- Request scheduling.
+- Cache management.
+- Cancellation.
+- Streaming.
+- Error reporting.
+
+Use a clear runtime interface.
+
+Suggested abstract backend operations:
+
+- initialize()
+- capabilities()
+- load_model()
+- allocate_tensor()
+- execute_forward()
+- execute_attention()
+- execute_projection()
+- synchronize()
+- report_memory()
+- release_resources()
+- shutdown()
+
+Refine these methods to suit the real tensor and execution design.
+
+Do not implement a fake universal tensor abstraction that merely
+copies every operation back to Python without a reason.
+
+Build a functional CPU path first. Then add and test accelerated paths.
+
+The runtime must load the exported TinyCode artifact format and
+validate architecture compatibility.
+
+If an artifact requires an unsupported operator, fail clearly
+or select a tested compatible fallback.
+
+Do not silently substitute a different model.
+
+===============================================================
+11. HARDWARE BACKEND STRATEGY
+===============================================================
+
+Implement backend detection and dispatch.
+
+The preferred execution path depends on actual capabilities,
+supported operators, memory, precision, and measured performance.
+
+Priority:
+
+1. CUDA when a compatible NVIDIA GPU and supported CUDA runtime exist.
+2. Intel integrated graphics when a compatible, verified graphics
+   execution backend is available.
+3. ARM NEON when running on a compatible ARM CPU.
+4. Optimized general CPU execution as the universal fallback.
+
+This is a capability-based selection strategy, not a guarantee that
+all systems support all listed backends.
+
+A backend must advertise the operators, precisions, and features it
+actually supports.
+
+CUDA BACKEND
+
+Implement:
+
+- Device discovery.
+- Capability detection.
+- Model placement.
+- GPU memory accounting.
+- Supported precision selection.
+- Forward-pass execution.
+- Supported optimized attention.
+- Synchronization.
+- Memory pressure handling.
+- OOM reporting and recovery.
+- CPU fallback when appropriate.
+
+Use PyTorch CUDA for initial correctness and training compatibility.
+Implement native CUDA/C++ acceleration for performance-critical
+inference operations when measurements justify it.
+
+Do not require every operator to have a custom CUDA kernel.
+
+INTEL INTEGRATED GRAPHICS BACKEND
+
+Detect Intel integrated graphics and determine whether a supported
+execution provider is installed and usable.
+
+Investigate compatible options such as OpenVINO or another maintained
+backend appropriate to the target platform.
+
+Encapsulate the chosen provider behind the inference backend interface.
+
+Requirements:
+
+- Detect the actual graphics device.
+- Verify that the provider can access it.
+- Verify model/operator compatibility.
+- Report whether execution is actually occurring on the GPU.
+- Avoid claiming GPU acceleration when operations are running on CPU.
+- Provide a tested fallback if the device cannot run the model.
+
+Do not assume that PyTorch CUDA supports Intel graphics.
+
+ARM NEON BACKEND
+
+Detect ARM architecture and NEON support.
+
+Implement or integrate a maintained native CPU kernel path that can
+use NEON instructions where available.
+
+Potential targets include matrix multiplication, vector operations,
+normalization, and other measurable bottlenecks.
+
+Use compile-time and runtime capability checks as appropriate.
+
+If NEON is unavailable, use a general CPU implementation.
+
+Do not execute unsupported ARM-specific instructions on another CPU.
+
+CPU BACKEND
+
+Provide a portable CPU backend on supported operating systems.
+
+Implement:
+
+- Correct tensor operations.
+- Safe memory management.
+- Thread-count configuration.
+- Supported SIMD optimizations.
+- Graceful fallback when optional libraries are absent.
+- Correct numerical behavior.
+- Model loading and inference.
+- Performance measurements.
+
+CPU-only execution must remain a first-class supported mode.
+
+BACKEND SELECTION
+
+At startup:
+
+1. Discover available devices.
+2. Check installed execution providers.
+3. Check model compatibility.
+4. Check memory availability.
+5. Select a valid backend.
+6. Run a small initialization or execution test.
+7. Report the chosen backend and reason.
+8. Fall back safely if initialization fails.
+
+Never choose a backend solely because its name appears in a device
+enumeration.
+
+===============================================================
+12. CUSTOM NATIVE ENGINE AND OPTIMIZATION
+===============================================================
+
+Use C++ for native runtime components where it improves performance,
+control, or portability.
+
+Keep the native interface narrow and stable.
+
+Use a suitable build system such as CMake.
+
+Separate generic operators from hardware-specific implementations.
+
+Do not write every operation as a custom kernel before measuring
+the baseline.
+
+Establish a correctness-first CPU implementation, then benchmark:
+
+- Matrix multiplication.
+- Attention.
+- Normalization.
+- Embedding lookup.
+- Output projection.
+- Token sampling.
+- Memory movement.
+- Kernel-launch overhead.
+
+Prioritize optimizations according to measured cost.
+
+For CUDA, use supported CUDA libraries or kernels as appropriate.
+
+For Intel graphics, use the selected supported graphics execution
+provider and its optimized operations.
+
+For ARM, use verified NEON-capable native operations.
+
+Keep the Python orchestration layer separate from native tensor
+operations.
+
+The runtime must remain usable when native compilation is unavailable,
+using a documented compatible fallback.
+
+Do not require a compiler installation merely to use a prebuilt
+portable CPU mode when a compatible implementation can be provided.
+
+===============================================================
+13. OPENAI-COMPATIBLE API
+===============================================================
+
+Implement a locally hosted HTTP API that is compatible with common
+OpenAI client request and response formats.
+
+The goal is for existing clients to work by changing the base URL
+and supplying an API key accepted by the local server.
+
+Default local endpoint:
+
+    http://127.0.0.1:8000/v1
+
+Use FastAPI or another suitable framework with validated request
+schemas, asynchronous request handling, and streaming support.
+
+Implement the following endpoint families where applicable.
+
+MODEL DISCOVERY:
+
+    GET /v1/models
+
+TEXT COMPLETIONS:
+
+    POST /v1/completions
+
+CHAT COMPLETIONS:
+
+    POST /v1/chat/completions
+
+EMBEDDINGS:
+
+    POST /v1/embeddings
+
+RESPONSES API:
+
+    POST /v1/responses
+
+HEALTH AND DIAGNOSTICS:
+
+    GET /health
+    GET /health/ready
+    GET /metrics
+
+Only advertise endpoints that are genuinely implemented.
+
+If an endpoint is not supported, return a clear, compatible error
+rather than a fake successful response.
+
+For /v1/models, return loaded model identifiers and relevant metadata.
+
+For /v1/completions, support the applicable fields, including:
+
+- model
+- prompt
+- max_tokens
+- temperature
+- top_p
+- stop
+- stream
+- presence_penalty
+- frequency_penalty
+- seed where supported
+- logprobs where supported
+
+For /v1/chat/completions, support the applicable fields, including:
+
+- model
+- messages
+- max_tokens or the compatible output-token field
+- temperature
+- top_p
+- stop
+- stream
+- tools and tool_choice where implemented
+- response_format where implemented
+- seed where supported
+- penalties where supported
+
+Validate all fields and reject unsupported combinations explicitly.
+
+Do not silently ignore a requested feature and claim that it worked.
+
+Preserve the distinction between input tokens, output tokens,
+internal computation, and any verification work.
+
+OPENAI CLIENT COMPATIBILITY
+
+Test using an official OpenAI-compatible Python client where possible,
+configured with the local base URL and a local API key.
+
+Example usage:
+
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="http://127.0.0.1:8000/v1",
+        api_key="local-development-key"
+    )
+
+    response = client.chat.completions.create(
+        model="tinycode-local",
+        messages=[
+            {
+                "role": "user",
+                "content": "Write a JavaScript function that adds two numbers."
+            }
+        ],
+        max_tokens=128
+    )
+
+    print(response.choices[0].message.content)
+
+This example must work against the actual server before being
+presented as a verified example.
+
+The server must not require a connection to an external model API.
+
+===============================================================
+14. STREAMING AND RESPONSE SEMANTICS
+===============================================================
+
+Implement server-sent event streaming where appropriate.
+
+Support:
+
+    stream = true
+
+Return correctly formatted streaming chunks and the expected
+termination event for the implemented compatibility contract.
+
+Requirements:
+
+- Start producing output as soon as it is available.
+- Avoid buffering the entire completion before sending it.
+- Support client cancellation.
+- Stop generation when the client disconnects.
+- Release request-specific memory and scheduler resources.
+- Prevent one cancelled request from corrupting other requests.
+- Return correct finish reasons.
+- Report usage when available and document any limitations.
+- Handle exceptions after streaming has started safely.
+
+Implement request IDs and useful error identifiers.
+
+Do not claim full compatibility with every OpenAI API feature without
+testing each advertised feature.
+
+Maintain a compatibility matrix in the repository documentation.
+
+===============================================================
+15. API SECURITY AND OPERATIONAL SAFETY
+===============================================================
+
+Provide local development defaults, but design authentication
+explicitly.
+
+Requirements:
+
+- API-key authentication for protected endpoints.
+- Secure key configuration.
+- Constant-time secret comparison where applicable.
+- Request-size limits.
+- Rate limiting where configured.
+- Token-budget limits.
+- Request cancellation.
+- Bounded queues.
+- Safe error messages.
+- No secret logging.
+- No arbitrary shell execution through API endpoints.
+- No untrusted code execution by default.
+- Clear distinction between local-only and remotely exposed operation.
+
+Bind to 127.0.0.1 by default.
+
+If remote access is enabled, require an explicit user decision and
+document authentication, firewall, and network risks.
+
+Never expose an unauthenticated public inference service by default.
+
+===============================================================
+16. ADAPTIVE BUDGET INTEGRATION WITH THE API
+===============================================================
+
+The OpenAI-compatible request pipeline must invoke the budget
+controller when enabled.
+
+The default processing flow is:
+
+1. Receive request.
+2. Authenticate.
+3. Validate request and token limits.
+4. Identify the model.
+5. Estimate available compute and memory.
+6. Estimate task complexity.
+7. Allocate an initial computation budget.
+8. Enqueue the request.
+9. Run model inference.
+10. Evaluate supported uncertainty signals.
+11. Decide whether additional computation is justified.
+12. Perform supported verification if budgeted.
+13. Finalize the response.
+14. Return the response in the requested API format.
+15. Record truthful usage and operational metrics.
+
+The budget controller must operate within strict resource limits.
+
+The system must still return a normal API response if the controller
+is unavailable, using a deterministic baseline policy.
+
+Never make the controller's optional learned components a single
+point of failure for basic inference.
+
+Keep controller execution separate from the low-level model backend.
+
+===============================================================
+17. TOKEN GENERATION AND CACHING
+===============================================================
+
+Implement autoregressive generation compatible with the actual
+TinyCode model architecture.
+
+Support:
+
+- Greedy decoding.
+- Temperature sampling.
+- Top-p sampling.
+- Stop sequences where supported.
+- Maximum output-token limits.
+- Repetition and frequency controls where implemented.
+- Cancellation.
+- Streaming.
+- Accurate usage accounting.
+
+Implement KV caching if supported by the architecture.
+
+The cache must obey the fixed 1,024-token context limit.
+
+Do not allocate an unbounded cache.
+
+Account for memory per request and release resources when requests
+finish or are cancelled.
+
+Implement prefix caching only when correctness can be preserved.
+Cache keys must include the information needed to avoid reusing
+incompatible model or tokenizer states.
+
+Do not reuse cached results across incompatible model versions.
+
+===============================================================
+18. REQUEST SCHEDULING AND CONTINUOUS BATCHING
+===============================================================
+
+Implement a request scheduler capable of serving multiple clients.
+
+Requirements:
+
+- Bounded request queue.
+- Request admission control.
+- Cancellation.
+- Fairness.
+- Backpressure.
+- Configurable concurrency.
+- Continuous batching where the model and runtime support it.
+- Memory-aware batch formation.
+- Request-level budgets.
+- Per-request generation limits.
+- Clean worker shutdown.
+- Recovery from failed requests.
+
+Do not assume continuous batching works automatically with every
+custom architecture. Implement it only with correct per-request
+state management and tests.
+
+One request must not consume unlimited memory or starve all other
+requests.
+
+The scheduler may defer or reject work when resource limits are
+reached.
+
+The fixed context length must remain unchanged under all conditions.
+
+===============================================================
+19. RESOURCE MANAGEMENT IN THE INFERENCE ENGINE
+===============================================================
+
+Monitor:
+
+- CPU utilization.
+- CPU memory.
+- GPU utilization where available.
+- GPU memory.
+- Device temperatures where supported.
+- Queue depth.
+- Active requests.
+- Tokens generated.
+- Tokens per second.
+- First-token latency.
+- End-to-end latency.
+- Cache usage.
+- Backend errors.
+
+Use memory-aware admission and cache eviction.
+
+When memory pressure occurs:
+
+1. Stop admitting unnecessary work.
+2. Apply backpressure.
+3. Cancel or reject work according to documented policy.
+4. Release completed request resources.
+5. Evict eligible cache entries.
+6. Recover from supported backend failures.
+7. Switch to a compatible fallback when safe.
+8. Report the action.
+9. Preserve service integrity.
+
+Do not silently migrate incompatible model state between backends.
+
+Do not repeatedly retry an operation that cannot succeed.
+
+===============================================================
+20. ARTIFACT FORMAT AND TWO-REPOSITORY INTEGRATION
+===============================================================
+
+Define a versioned model artifact manifest.
+
+The manifest should include:
+
+- Artifact format version.
+- Model name and version.
+- Architecture identifier.
+- Requested parameter target.
+- Actual parameter count.
+- Fixed context length.
+- Vocabulary size.
+- Tokenizer fingerprint.
+- Weight format.
+- Supported precisions.
+- Architecture configuration.
+- Required operators.
+- Model weight file paths.
+- Optional controller artifact.
+- Controller version.
+- Controller feature schema.
+- Training metadata.
+- Export metadata.
+- Compatibility information.
+- File integrity hashes.
+
+Do not store secrets in the manifest.
+
+The inference engine must validate this manifest before loading
+a model.
+
+If a controller artifact is missing, load the model with the
+baseline budget policy.
+
+If a model architecture is unsupported, reject it clearly rather
+than loading it incorrectly.
+
+Use versioned contracts so the model-builder repository and inference
+repository can evolve independently.
+
+Create golden test artifacts that both repositories use to verify
+compatibility.
+
+===============================================================
+21. TRAINING THE MODEL
+===============================================================
+
+Implement a real PyTorch training loop.
+
+Default target:
+
+    200,000,000 training tokens
+
+The user chooses the target interactively.
+
+Use The Stack as the exclusive initial corpus.
+
+Support:
+
+- AdamW or another documented optimizer.
+- Learning-rate scheduling.
+- Warmup.
+- Weight decay.
+- Gradient clipping.
+- Mixed precision when supported.
+- Gradient accumulation.
+- Memory-aware microbatch selection.
+- Validation.
+- Loss tracking.
+- Throughput measurements.
+- Checkpointing.
+- Resume support.
+- Graceful interruption.
+- Final evaluation.
+
+Before a long run, execute a smoke test that verifies forward pass,
+backpropagation, optimizer update, checkpoint round trip, memory
+usage, and measured throughput.
+
+Ask for confirmation before starting a long training run.
+
+Do not claim that 200M training tokens guarantee a particular
+coding benchmark result.
+
+===============================================================
+22. RESOURCE SAFETY DURING TRAINING
+===============================================================
+
+Monitor CPU RAM, GPU memory, disk space, and supported hardware
+telemetry.
+
+Use conservative initial policies:
+
+- Below 75% memory use: normal.
+- 75–89%: caution.
+- 90–94%: reduce resource pressure.
+- 95% or above: pause safely and recover.
+- OOM: immediate recovery.
+
+These are starting thresholds that should be validated in the
+actual environment.
+
+Recovery may reduce microbatch size, reduce data-loader workers,
+release temporary memory, or increase gradient accumulation.
+
+Never change the context length during recovery.
+
+Never silently modify the selected parameter target.
+
+If the selected architecture cannot fit the hardware, stop and
+explain the limitation instead of entering an endless retry loop.
+
+===============================================================
+23. CHECKPOINTS AND GOOGLE DRIVE
+===============================================================
+
+Save:
+
+- Model weights.
+- Model configuration.
+- Parameter target and actual count.
+- Optimizer state.
+- Scheduler state.
+- Precision-scaler state.
+- Training step.
+- Committed training-token count.
+- Dataset position.
+- RNG states.
+- Tokenizer fingerprint.
+- Training metrics.
+- Resource recovery state.
+- Checkpoint integrity metadata.
+
+Use atomic writes and preserve previous known-good checkpoints.
+
+When running in Colab, use:
+
+    from google.colab import drive
+    drive.mount('/content/drive')
+
+Do not use a third-party Google Drive mounting replacement.
+
+Detect an existing mount and avoid unnecessary remounting.
+
+Use local storage outside Colab.
+
+Verify Drive copies before declaring synchronization successful.
+
+If Drive fails, preserve local checkpoints and report the failure.
+
+===============================================================
+24. DASHBOARD AND CLOUDFLARE
+===============================================================
+
+Build a real authenticated training dashboard.
+
+Show:
+
+- Model and parameter count.
+- Training-token target and progress.
+- Training throughput.
+- Estimated completion time.
+- Loss and validation loss.
+- Optimizer step.
+- Learning rate.
+- GPU and CPU utilization.
+- GPU VRAM and system RAM.
+- Disk space.
+- Dataset progress.
+- Checkpoint state.
+- Drive synchronization.
+- Recent logs and recovery events.
+
+Provide functional controls for:
+
+- Requesting a safe checkpoint.
+- Pausing training.
+- Resuming training.
+- Gracefully stopping training.
+- Viewing logs.
+
+Optionally expose the dashboard through a Cloudflare quick tunnel
+and display its temporary URL.
+
+Authenticate the dashboard independently of the tunnel URL.
+
+Do not expose arbitrary shell execution.
+
+Training must continue if the dashboard or tunnel disconnects.
+
+===============================================================
+25. EXPORT AND MODEL LOADING
+===============================================================
+
+Support:
+
+- PyTorch weights-only export.
+- Full resumable PyTorch checkpoint.
+- Safetensors.
+- Tokenizer files.
+- Model configuration.
+- Versioned artifact manifest.
+- GGUF when the architecture and converter are compatible.
+- Supported quantization formats.
+
+Possible formats include FP16, BF16, Q8_0, and Q4_K_M, but only offer
+formats that the implementation can actually produce and validate.
+
+Verify exported files and test model loading where possible.
+
+Do not claim arbitrary custom architectures can be converted to GGUF
+without implementing or verifying the necessary conversion support.
+
+The inference engine must not depend on the model-builder repository
+being imported at runtime.
+
+===============================================================
+26. OBSERVABILITY AND METRICS
+===============================================================
+
+Expose useful runtime metrics.
+
+At minimum, measure:
+
+- Requests received.
+- Requests completed.
+- Requests rejected.
+- Active requests.
+- Queue depth.
+- Input tokens.
+- Output tokens.
+- Tokens per second.
+- Time to first token.
+- Total response latency.
+- Budget allocated.
+- Budget consumed.
+- Verification runs.
+- Backend selection.
+- Backend errors.
+- Cache hit rate where applicable.
+- Memory usage.
+- Model loading time.
+
+Separate training metrics from inference metrics.
+
+Do not fabricate metrics when telemetry is unavailable.
+
+Use explicit null or unavailable indicators instead of false zeroes.
+
+Ensure metric collection does not create unbounded memory growth.
+
+===============================================================
+27. TESTING STRATEGY
+===============================================================
+
+Write tests for both repositories and the integration contracts.
+
+MODEL BUILDER TESTS:
+
+- Parameter-target parsing.
+- Exact parameter count.
+- Context invariant.
+- Tokenizer compatibility.
+- Dataset filtering.
+- Data leakage prevention.
+- Token accounting.
+- Training step.
+- Checkpoint save/load.
+- Resume correctness.
+- Drive synchronization.
+- Resource recovery.
+- Export round trips.
+
+INFERENCE ENGINE TESTS:
+
+- CPU backend.
+- CUDA backend where available.
+- Intel graphics backend where available.
+- ARM NEON backend where available.
+- Safe CPU fallback.
+- Backend capability reporting.
+- Model artifact validation.
+- Tokenizer compatibility.
+- Context enforcement.
+- Greedy generation.
+- Sampling.
+- Streaming.
+- Cancellation.
+- KV-cache correctness.
+- Scheduler fairness.
+- Budget enforcement.
+- Controller fallback.
+- API authentication.
+- OpenAI-compatible response schemas.
+- Error handling.
+- Memory pressure.
+- Clean shutdown.
+
+INTEGRATION TESTS:
+
+- Export a model from the builder.
+- Load it into the inference engine.
+- Validate the manifest.
+- Compare logits or generation behavior within appropriate numerical
+  tolerances.
+- Verify tokenizer identity.
+- Verify the fixed context invariant.
+- Verify the optional controller artifact.
+- Verify the baseline policy works without the controller.
+- Test OpenAI client requests against the local server.
+
+Hardware-specific tests must be skipped explicitly when hardware
+or compatible libraries are unavailable.
+
+Do not claim that an unexecuted hardware test passed.
+
+===============================================================
+28. DOCUMENTATION REQUIREMENTS
+===============================================================
+
+Create documentation for:
+
+- Workspace structure.
+- Repository boundaries.
+- Architecture.
+- Parameter accounting.
+- Fixed context invariant.
+- Dataset preparation.
+- Tokenizer training.
+- Training and recovery.
+- Google Drive mounting.
+- Adaptive budget controller.
+- Inference engine internals.
+- Hardware backend support.
+- OpenAI-compatible endpoints.
+- API authentication.
+- Streaming.
+- Request scheduling.
+- Cache management.
+- Artifact format.
+- Export compatibility.
+- Benchmarks.
+- Troubleshooting.
+
+Document which features are implemented, experimental, unsupported,
+or awaiting hardware validation.
+
+Maintain a compatibility matrix for API features and hardware backends.
+
+===============================================================
+29. IMPLEMENTATION ORDER
+===============================================================
+
+PHASE 1 — INSPECT AND PLAN
+
+Inspect existing files, dependencies, hardware, and project state.
+
+Create the two repositories and shared contracts without destroying
+existing work.
+
+PHASE 2 — CORE CONTRACTS
+
+Define the model artifact manifest, backend interface, inference
+request structures, budget object, and OpenAI-compatible schemas.
+
+Add schema validation and tests.
+
+PHASE 3 — MODEL BUILDER FOUNDATION
+
+Implement interactive configuration, parameter parsing, exact
+parameter accounting, the fixed context invariant, model construction,
+and tokenizer handling.
+
+PHASE 4 — TRAINING PIPELINE
+
+Implement The Stack access, data processing, training, validation,
+checkpointing, and Google Drive integration.
+
+Verify a complete small training run.
+
+PHASE 5 — CPU INFERENCE
+
+Implement artifact loading, tokenizer integration, the CPU backend,
+generation, and a minimal working API.
+
+Verify real inference before adding acceleration.
+
+PHASE 6 — OPENAI API
+
+Implement chat completions, completions, model discovery, streaming,
+authentication, usage reporting, and request validation.
+
+Test with a compatible client.
+
+PHASE 7 — ADAPTIVE BUDGET LAYER
+
+Implement deterministic baseline policies first.
+
+Add request analysis, budget allocation, bounded planning,
+uncertainty estimation, optional verification, stopping rules,
+and telemetry.
+
+Connect optional trainable controller artifacts.
+
+PHASE 8 — HARDWARE BACKENDS
+
+Implement CUDA acceleration.
+
+Then implement and test Intel graphics support through a compatible
+execution provider.
+
+Implement ARM NEON acceleration where hardware and compiler support
+are available.
+
+Maintain a dependable CPU fallback throughout.
+
+PHASE 9 — SCHEDULING AND MEMORY
+
+Implement request queues, admission control, continuous batching
+where supported, cache management, cancellation, and backpressure.
+
+PHASE 10 — DASHBOARD
+
+Implement the authenticated dashboard and optional Cloudflare tunnel.
+
+PHASE 11 — EXPORT AND INTEGRATION
+
+Implement artifact exports and cross-repository compatibility tests.
+
+PHASE 12 — PERFORMANCE
+
+Benchmark real workloads and optimize measured bottlenecks.
+
+PHASE 13 — RELEASE VALIDATION
+
+Run the test suites, verify documentation, fix integration failures,
+and report actual completion status.
+
+Do not skip directly to GPU optimization before a correct CPU path
+and working artifact-loading pipeline exist.
+
+===============================================================
+30. ACCEPTANCE CRITERIA
+===============================================================
+
+The system is not complete until it can demonstrate:
+
+1. Two independently buildable repositories exist.
+2. The repositories integrate through versioned contracts.
+3. The model-builder starts with python main.py.
+4. Parameter count is selected interactively.
+5. Actual trainable parameter count matches the selected target.
+6. Context is always exactly 1,024 tokens.
+7. The tokenizer can be trained, saved, and loaded.
+8. The Stack pipeline works for accessible dataset configurations.
+9. Training performs real optimizer updates.
+10. Checkpoints can be resumed correctly.
+11. Google Drive uses Colab's built-in Python module.
+12. The inference engine loads real exported model artifacts.
+13. CPU inference works without an accelerator.
+14. CUDA is detected and used when compatible.
+15. Intel graphics is detected and used only through a verified,
+    supported execution backend.
+16. ARM NEON is used only on compatible hardware.
+17. Unsupported backends fall back safely.
+18. The adaptive budget controller allocates bounded computation.
+19. Basic inference works without a trained controller.
+20. The context invariant cannot be overridden.
+21. The OpenAI-compatible API returns real model-generated responses.
+22. Streaming works for supported endpoints.
+23. Authentication and request limits are enforced.
+24. Cancellation releases resources safely.
+25. Scheduling and cache operations preserve request correctness.
+26. Exported artifacts pass compatibility checks.
+27. Cross-repository integration tests pass.
+28. Performance reports use measured results.
+29. Hardware-specific limitations are documented.
+30. No unfinished feature is falsely presented as complete.
+
+===============================================================
+31. FINAL ENGINEERING RULES
+===============================================================
+
+Build working software rather than an impressive-looking scaffold.
+
+Keep modules small, focused, and independently testable.
+
+Avoid circular imports and duplicated business logic.
+
+Keep model training separate from inference serving.
+
+Keep the adaptive budget policy separate from the low-level execution
+backend.
+
+Keep hardware-specific code behind backend interfaces.
+
+Use typed structures and explicit contracts between components.
+
+Do not silently swallow exceptions.
+
+Do not fabricate performance numbers.
+
+Do not advertise unsupported hardware or API capabilities.
+
+Do not change the parameter target without user input.
+
+Do not change the fixed context length under any circumstances.
+
+Do not execute generated code without an explicit secure sandbox.
+
+Do not require cloud services for basic local inference.
+
+Do not make an optional learned controller mandatory for serving.
+
+Do not overwrite checkpoints or existing user work without permission.
+
+Do not claim compatibility until the relevant tests have been run.
+
+Do not leave essential buttons, endpoints, or modules as placeholders.
+
+If an optimization is too complex to implement safely in the current
+environment, provide a working fallback, document the limitation,
+and keep the interface ready for a future implementation.
+
+===============================================================
+32. FINAL DELIVERABLE
+===============================================================
+
+Produce:
+
+- The complete two-repository workspace.
+- All implemented source files.
+- Dependency and build configuration.
+- Versioned shared contracts.
+- Unit tests.
+- Integration tests.
+- Hardware-specific tests where feasible.
+- Dataset and training tools.
+- Adaptive-budget controller.
+- Custom inference runtime.
+- OpenAI-compatible API.
+- Hardware backend interfaces and implemented backends.
+- Checkpointing and recovery.
+- Export and compatibility tools.
+- Documentation.
+- Reproducible benchmark scripts.
+
+At the end, report:
+
+- Repositories and directories created or modified.
+- Features implemented.
+- Tests actually executed and results.
+- Hardware backends actually verified.
+- Model artifacts produced.
+- API endpoints actually tested.
+- Measured latency and throughput, if measured.
+- Known limitations.
+- Unimplemented acceptance criteria.
+- Exact commands for starting model building and inference.
+
+Begin by inspecting the workspace. Then build a minimal end-to-end
+working path through model construction, parameter validation,
+checkpointing, artifact loading, CPU inference, and one working
+OpenAI-compatible endpoint.
+
+Expand that verified foundation into the full architecture.
+
+The final objective is not a collection of ambitious module names.
+It is a genuinely integrated, modular model-building and inference
+system whose adaptive budget decisions, hardware execution, API
+behavior, and model artifacts are all backed by working code and tests.

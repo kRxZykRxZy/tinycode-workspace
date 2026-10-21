@@ -1,0 +1,7 @@
+# Server configuration.
+#
+# The server binds to 127.0.0.1 by default.  Exposing it on another
+# interface is an explicit decision that requires authentication.
+
+host: 127.0.0.1
+port: 8000

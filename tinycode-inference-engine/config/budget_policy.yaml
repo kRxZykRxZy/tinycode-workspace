@@ -1,0 +1,12 @@
+# Adaptive budget policy.
+#
+# These are the server side limits of the computation budget.  A user
+# supplied budget can never exceed them.
+
+budget:
+  max_generation_tokens: 1024
+  max_internal_steps: 8
+  max_verification_passes: 2
+  max_computation_tokens: 4096
+  max_latency_ms: 120000
+  max_prompt_tokens: 1024

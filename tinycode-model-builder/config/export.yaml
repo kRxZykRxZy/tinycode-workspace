@@ -1,0 +1,15 @@
+# Export configuration.
+
+export:
+  formats:
+    - pytorch
+    - safetensors
+  include_tokenizer: true
+  include_controller: true
+  dtype: float32
+  quantize: false
+  quantization_format: int8_dynamic
+  gguf: false
+  # OpenVINO IR export (used by the inference engine's Intel GPU path).
+  openvino: false
+  openvino_device: GPU
